@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>销售提成助手 - 数据分析</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        body {
+            background: #1a1a2e;
+            overflow-x: hidden;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+        }
+        .glow-border {
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+            border: 1px solid rgba(0, 212, 255, 0.5);
+        }
+        .hover-lift {
+            transition: all 0.3s ease;
+        }
+        .hover-lift:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 30px rgba(0, 212, 255, 0.2);
+        }
+        .gradient-text {
+            background: linear-gradient(135deg, #00d4ff, #4ade80);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .sidebar-item {
+            transition: all 0.3s ease;
+            border-radius: 8px;
+        }
+        .sidebar-item:hover {
+            background: rgba(0, 212, 255, 0.1);
+            transform: translateX(4px);
+        }
+        .sidebar-item.active {
+            background: rgba(0, 212, 255, 0.2);
+            border-left: 3px solid #00d4ff;
+        }
+        #p5-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: -1;
+        }
+        .filter-button {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .filter-button:hover {
+            background: rgba(0, 212, 255, 0.1);
+            border-color: rgba(0, 212, 255, 0.3);
+        }
+        .filter-button.active {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: rgba(0, 212, 255, 0.5);
+            color: #00d4ff;
+        }
+        .stat-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            transition: all 0.4s ease;
+        }
+        .stat-card:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(0, 212, 255, 0.3);
+            transform: translateY(-2px);
+        }
+        .floating-element {
+            animation: float 6s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        .chart-container {
+            height: 400px;
+            width: 100%;
+        }
+        .metric-trend {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .trend-up {
+            color: #4ade80;
+        }
+        .trend-down {
+            color: #ef4444;
+        }
+        .trend-neutral {
+            color: #64748b;
+        }
+    </style>
+</head>
+<body class="text-white min-h-screen">
+    <!-- P5.js背景画布 -->
+    <div id="p5-container"></div>
+    
+    <!-- 主容器 -->
+    <div class="flex min-h-screen">
+        <!-- 左侧导航栏 -->
+        <div class="w-64 glass-card m-4 p-6 h-screen fixed left-0 top-0">
+            <div class="mb-8">
+                <h1 class="text-2xl font-bold gradient-text mb-2">销售提成助手</h1>
+                <p class="text-sm text-gray-400">个人版</p>
+            </div>
+            
+            <nav class="space-y-2">
+                <a href="index.html" class="sidebar-item flex items-center p-3 text-gray-300 hover:text-white">
+                    <span class="mr-3">📊</span>
+                    <span>工作台</span>
+                </a>
+                <a href="projects.html" class="sidebar-item flex items-center p-3 text-gray-300 hover:text-white">
+                    <span class="mr-3">📝</span>
+                    <span>项目管理</span>
+                </a>
+                <a href="calculator.html" class="sidebar-item flex items-center p-3 text-gray-300 hover:text-white">
+                    <span class="mr-3">🧮</span>
+                    <span>提成计算</span>
+                </a>
+                <a href="analytics.html" class="sidebar-item active flex items-center p-3 text-white">
+                    <span class="mr-3">📈</span>
+                    <span>数据分析</span>
+                </a>
+            </nav>
+            
+            <div class="mt-auto pt-8 border-t border-gray-600">
+                <div class="text-center">
+                    <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-green-400 rounded-full mx-auto mb-3"></div>
+                    <p class="text-sm text-gray-400">销售人员</p>
+                    <p class="text-xs text-gray-500">v1.0.0</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 主内容区 -->
+        <div class="flex-1 ml-72 p-8">
+            <!-- 页面标题和筛选器 -->
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h2 class="text-3xl font-bold mb-2">数据分析</h2>
+                    <p class="text-gray-400">深度分析销售业绩，洞察业务趋势</p>
+                </div>
+                <div class="flex gap-2">
+                    <button class="filter-button active" data-period="month">本月</button>
+                    <button class="filter-button" data-period="quarter">本季度</button>
+                    <button class="filter-button" data-period="year">本年度</button>
+                    <button class="filter-button" data-period="all">全部</button>
+                </div>
+            </div>
+            
+            <!-- 关键指标卡片 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="stat-card p-6 hover-lift floating-element">
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-gray-400 text-sm">总销售额</span>
+                        <span class="text-2xl">💰</span>
+                    </div>
+                    <div class="text-2xl font-bold font-mono gradient-text mb-2" id="total-sales">¥0</div>
+                    <div class="metric-trend">
+                        <span class="text-xs trend-up">↗ +12.5%</span>
+                        <span class="text-xs text-gray-400">较上期</span>
+                    </div>
+                </div>
+                
+                <div class="stat-card p-6 hover-lift floating-element">
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-gray-400 text-sm">总提成</span>
+                        <span class="text-2xl">📈</span>
+                    </div>
+                    <div class="text-2xl font-bold font-mono gradient-text mb-2" id="total-commission">¥0</div>
+                    <div class="metric-trend">
+                        <span class="text-xs trend-up">↗ +8.3%</span>
+                        <span class="text-xs text-gray-400">较上期</span>
+                    </div>
+                </div>
+                
+                <div class="stat-card p-6 hover-lift floating-element">
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-gray-400 text-sm">平均提成率</span>
+                        <span class="text-2xl">🎯</span>
+                    </div>
+                    <div class="text-2xl font-bold font-mono gradient-text mb-2" id="avg-commission-rate">0%</div>
+                    <div class="metric-trend">
+                        <span class="text-xs trend-down">↘ -2.1%</span>
+                        <span class="text-xs text-gray-400">较上期</span>
+                    </div>
+                </div>
+                
+                <div class="stat-card p-6 hover-lift floating-element">
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-gray-400 text-sm">项目数量</span>
+                        <span class="text-2xl">📋</span>
+                    </div>
+                    <div class="text-2xl font-bold font-mono gradient-text mb-2" id="project-count">0</div>
+                    <div class="metric-trend">
+                        <span class="text-xs trend-up">↗ +15.2%</span>
+                        <span class="text-xs text-gray-400">较上期</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 图表区域 -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <!-- 业绩趋势图 -->
+                <div class="glass-card p-6">
+                    <h3 class="text-lg font-semibold mb-6">业绩趋势分析</h3>
+                    <div id="trend-chart" class="chart-container"></div>
+                </div>
+                
+                <!-- 提成构成分析 -->
+                <div class="glass-card p-6">
+                    <h3 class="text-lg font-semibold mb-6">提成构成分析</h3>
+                    <div id="commission-composition-chart" class="chart-container"></div>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <!-- 客户分析 -->
+                <div class="glass-card p-6">
+                    <h3 class="text-lg font-semibold mb-6">客户价值分析</h3>
+                    <div id="customer-analysis-chart" class="chart-container"></div>
+                </div>
+                
+                <!-- 产品分析 -->
+                <div class="glass-card p-6">
+                    <h3 class="text-lg font-semibold mb-6">产品销售分析</h3>
+                    <div id="product-analysis-chart" class="chart-container"></div>
+                </div>
+            </div>
+            
+            <!-- 详细数据表格 -->
+            <div class="glass-card p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-semibold">详细数据</h3>
+                    <div class="flex gap-2">
+                        <select id="table-sort" class="filter-button">
+                            <option value="date-desc">日期降序</option>
+                            <option value="date-asc">日期升序</option>
+                            <option value="amount-desc">金额降序</option>
+                            <option value="amount-asc">金额升序</option>
+                        </select>
+                        <button onclick="exportData()" class="filter-button bg-green-600 hover:bg-green-500">
+                            📊 导出数据
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-gray-600">
+                                <th class="text-left py-3 px-4">项目日期</th>
+                                <th class="text-left py-3 px-4">项目名称</th>
+                                <th class="text-left py-3 px-4">客户名称</th>
+                                <th class="text-right py-3 px-4">销售金额</th>
+                                <th class="text-right py-3 px-4">提成收入</th>
+                                <th class="text-center py-3 px-4">产品类型</th>
+                                <th class="text-center py-3 px-4">状态</th>
+                            </tr>
+                        </thead>
+                        <tbody id="data-table-body">
+                            <!-- 表格数据将通过JavaScript动态加载 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="main.js"></script>
+    <script>
+        // 数据分析页面逻辑
+        const AnalyticsManager = {
+            currentPeriod: 'month',
+            charts: {},
+            
+            init() {
+                this.bindEvents();
+                this.loadAnalytics();
+                this.initCharts();
+                this.initAnimations();
+            },
+            
+            bindEvents() {
+                // 时间周期筛选
+                document.querySelectorAll('.filter-button[data-period]').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('.filter-button[data-period]').forEach(b => b.classList.remove('active'));
+                        e.target.classList.add('active');
+                        this.currentPeriod = e.target.dataset.period;
+                        this.loadAnalytics();
+                    });
+                });
+                
+                // 表格排序
+                document.getElementById('table-sort').addEventListener('change', (e) => {
+                    this.sortTableData(e.target.value);
+                });
+            },
+            
+            loadAnalytics() {
+                const data = window.CommissionApp.DataManager.getData();
+                const filteredProjects = this.filterProjectsByPeriod(data.projects);
+                
+                this.updateStatistics(filteredProjects);
+                this.updateTrendChart(filteredProjects);
+                this.updateCommissionCompositionChart(filteredProjects);
+                this.updateCustomerAnalysisChart(filteredProjects);
+                this.updateProductAnalysisChart(filteredProjects);
+                this.updateDataTable(filteredProjects);
+            },
+            
+            filterProjectsByPeriod(projects) {
+                const now = new Date();
+                const currentMonth = now.getMonth();
+                const currentYear = now.getFullYear();
+                
+                return projects.filter(project => {
+                    const projectDate = new Date(project.dealDate);
+                    
+                    switch (this.currentPeriod) {
+                        case 'month':
+                            return projectDate.getMonth() === currentMonth && 
+                                   projectDate.getFullYear() === currentYear;
+                        case 'quarter':
+                            const currentQuarter = Math.floor(currentMonth / 3);
+                            const projectQuarter = Math.floor(projectDate.getMonth() / 3);
+                            return projectQuarter === currentQuarter && 
+                                   projectDate.getFullYear() === currentYear;
+                        case 'year':
+                            return projectDate.getFullYear() === currentYear;
+                        case 'all':
+                        default:
+                            return true;
+                    }
+                });
+            },
+            
+            updateStatistics(projects) {
+                const totalSales = projects.reduce((sum, p) => sum + p.amount, 0);
+                const totalCommission = projects.reduce((sum, p) => {
+                    return sum + window.CommissionApp.DataManager.calculateCommission(p.amount, 
+                        window.CommissionApp.DataManager.getData().commissionRules);
+                }, 0);
+                const avgCommissionRate = totalSales > 0 ? (totalCommission / totalSales * 100) : 0;
+                
+                this.animateNumber('total-sales', totalSales, '¥');
+                this.animateNumber('total-commission', totalCommission, '¥');
+                this.animateNumber('avg-commission-rate', avgCommissionRate, '', '%');
+                this.animateNumber('project-count', projects.length);
+            },
+            
+            animateNumber(elementId, end, prefix = '', suffix = '') {
+                const element = document.getElementById(elementId);
+                if (!element) return;
+                
+                const obj = { value: 0 };
+                anime({
+                    targets: obj,
+                    value: end,
+                    duration: 2000,
+                    easing: 'easeOutCubic',
+                    update: function() {
+                        let value;
+                        if (prefix === '¥') {
+                            value = prefix + Math.floor(obj.value).toLocaleString();
+                        } else if (suffix === '%') {
+                            value = obj.value.toFixed(1) + suffix;
+                        } else {
+                            value = Math.floor(obj.value);
+                        }
+                        element.textContent = value;
+                    }
+                });
+            },
+            
+            initCharts() {
+                // 业绩趋势图
+                this.charts.trend = echarts.init(document.getElementById('trend-chart'));
+                
+                // 提成构成图
+                this.charts.composition = echarts.init(document.getElementById('commission-composition-chart'));
+                
+                // 客户分析图
+                this.charts.customer = echarts.init(document.getElementById('customer-analysis-chart'));
+                
+                // 产品分析图
+                this.charts.product = echarts.init(document.getElementById('product-analysis-chart'));
+            },
+            
+            updateTrendChart(projects) {
+                // 按月份分组数据
+                const monthlyData = this.groupProjectsByMonth(projects);
+                
+                const option = {
+                    backgroundColor: 'transparent',
+                    tooltip: {
+                        trigger: 'axis',
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        borderColor: '#00d4ff',
+                        textStyle: {
+                            color: '#fff'
+                        }
+                    },
+                    legend: {
+                        data: ['销售额', '提成收入'],
+                        textStyle: {
+                            color: '#fff'
+                        }
+                    },
+                    grid: {
+                        left: '3%',
+                        right: '4%',
+                        bottom: '3%',
+                        containLabel: true
+                    },
+                    xAxis: {
+                        type: 'category',
+                        data: monthlyData.map(d => d.month),
+                        axisLine: {
+                            lineStyle: {
+                                color: '#64748b'
+                            }
+                        },
+                        axisLabel: {
+                            color: '#94a3b8'
+                        }
+                    },
+                    yAxis: {
+                        type: 'value',
+                        axisLine: {
+                            lineStyle: {
+                                color: '#64748b'
+                            }
+                        },
+                        axisLabel: {
+                            color: '#94a3b8',
+                            formatter: function(value) {
+                                return '¥' + (value / 10000).toFixed(0) + '万';
+                            }
+                        },
+                        splitLine: {
+                            lineStyle: {
+                                color: 'rgba(100, 116, 139, 0.2)'
+                            }
+                        }
+                    },
+                    series: [
+                        {
+                            name: '销售额',
+                            type: 'line',
+                            data: monthlyData.map(d => d.sales),
+                            smooth: true,
+                            lineStyle: {
+                                color: '#00d4ff',
+                                width: 3
+                            },
+                            itemStyle: {
+                                color: '#00d4ff'
+                            },
+                            areaStyle: {
+                                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                    { offset: 0, color: 'rgba(0, 212, 255, 0.3)' },
+                                    { offset: 1, color: 'rgba(0, 212, 255, 0.1)' }
+                                ])
+                            }
+                        },
+                        {
+                            name: '提成收入',
+                            type: 'line',
+                            data: monthlyData.map(d => d.commission),
+                            smooth: true,
+                            lineStyle: {
+                                color: '#4ade80',
+                                width: 3
+                            },
+                            itemStyle: {
+                                color: '#4ade80'
+                            },
+                            areaStyle: {
+                                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                    { offset: 0, color: 'rgba(74, 222, 128, 0.3)' },
+                                    { offset: 1, color: 'rgba(74, 222, 128, 0.1)' }
+                                ])
+                            }
+                        }
+                    ]
+                };
+                
+                this.charts.trend.setOption(option);
+            },
+            
+            updateCommissionCompositionChart(projects) {
+                const composition = this.calculateCommissionComposition(projects);
+                
+                const option = {
+                    backgroundColor: 'transparent',
+                    tooltip: {
+                        trigger: 'item',
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        borderColor: '#00d4ff',
+                        textStyle: {
+                            color: '#fff'
+                        },
+                        formatter: function(params) {
+                            return `${params.name}<br/>金额: ¥${params.value.toLocaleString()}<br/>占比: ${params.percent}%`;
+                        }
+                    },
+                    series: [
+                        {
+                            name: '提成构成',
+                            type: 'pie',
+                            radius: ['40%', '70%'],
+                            center: ['50%', '50%'],
+                            data: composition,
+                            emphasis: {
+                                itemStyle: {
+                                    shadowBlur: 10,
+                                    shadowOffsetX: 0,
+                                    shadowColor: 'rgba(0, 212, 255, 0.5)'
+                                }
+                            },
+                            label: {
+                                color: '#fff',
+                                fontSize: 12,
+                                formatter: function(params) {
+                                    return params.name + '\n' + params.percent + '%';
+                                }
+                            },
+                            labelLine: {
+                                lineStyle: {
+                                    color: '#64748b'
+                                }
+                            }
+                        }
+                    ]
+                };
+                
+                this.charts.composition.setOption(option);
+            },
+            
+            updateCustomerAnalysisChart(projects) {
+                const customerData = this.analyzeCustomers(projects);
+                
+                const option = {
+                    backgroundColor: 'transparent',
+                    tooltip: {
+                        trigger: 'axis',
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        borderColor: '#00d4ff',
+                        textStyle: {
+                            color: '#fff'
+                        }
+                    },
+                    radar: {
+                        indicator: [
+                            { name: '销售额', max: Math.max(...customerData.map(d => d.sales)) },
+                            { name: '提成收入', max: Math.max(...customerData.map(d => d.commission)) },
+                            { name: '项目数量', max: Math.max(...customerData.map(d => d.count)) },
+                            { name: '平均单价', max: Math.max(...customerData.map(d => d.avgAmount)) }
+                        ],
+                        axisName: {
+                            color: '#94a3b8'
+                        },
+                        splitLine: {
+                            lineStyle: {
+                                color: 'rgba(100, 116, 139, 0.2)'
+                            }
+                        },
+                        splitArea: {
+                            show: false
+                        }
+                    },
+                    series: [
+                        {
+                            name: '客户价值分析',
+                            type: 'radar',
+                            data: customerData.map((customer, index) => ({
+                                value: [customer.sales, customer.commission, customer.count, customer.avgAmount],
+                                name: customer.name,
+                                itemStyle: {
+                                    color: ['#00d4ff', '#4ade80', '#f59e0b', '#ef4444'][index % 4]
+                                },
+                                areaStyle: {
+                                    opacity: 0.2
+                                }
+                            }))
+                        }
+                    ]
+                };
+                
+                this.charts.customer.setOption(option);
+            },
+            
+            updateProductAnalysisChart(projects) {
+                const productData = this.analyzeProducts(projects);
+                
+                const option = {
+                    backgroundColor: 'transparent',
+                    tooltip: {
+                        trigger: 'axis',
+                        axisPointer: {
+                            type: 'shadow'
+                        },
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        borderColor: '#00d4ff',
+                        textStyle: {
+                            color: '#fff'
+                        }
+                    },
+                    grid: {
+                        left: '3%',
+                        right: '4%',
+                        bottom: '3%',
+                        containLabel: true
+                    },
+                    xAxis: {
+                        type: 'category',
+                        data: productData.map(d => d.name),
+                        axisLine: {
+                            lineStyle: {
+                                color: '#64748b'
+                            }
+                        },
+                        axisLabel: {
+                            color: '#94a3b8'
+                        }
+                    },
+                    yAxis: {
+                        type: 'value',
+                        axisLine: {
+                            lineStyle: {
+                                color: '#64748b'
+                            }
+                        },
+                        axisLabel: {
+                            color: '#94a3b8',
+                            formatter: function(value) {
+                                return '¥' + (value / 10000).toFixed(0) + '万';
+                            }
+                        },
+                        splitLine: {
+                            lineStyle: {
+                                color: 'rgba(100, 116, 139, 0.2)'
+                            }
+                        }
+                    },
+                    series: [
+                        {
+                            name: '销售额',
+                            type: 'bar',
+                            data: productData.map(d => d.sales),
+                            itemStyle: {
+                                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                    { offset: 0, color: '#00d4ff' },
+                                    { offset: 1, color: '#4ade80' }
+                                ])
+                            },
+                            emphasis: {
+                                itemStyle: {
+                                    shadowBlur: 10,
+                                    shadowColor: 'rgba(0, 212, 255, 0.5)'
+                                }
+                            }
+                        }
+                    ]
+                };
+                
+                this.charts.product.setOption(option);
+            },
+            
+            groupProjectsByMonth(projects) {
+                const monthlyData = {};
+                
+                projects.forEach(project => {
+                    const date = new Date(project.dealDate);
+                    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                    
+                    if (!monthlyData[monthKey]) {
+                        monthlyData[monthKey] = {
+                            month: monthKey,
+                            sales: 0,
+                            commission: 0
+                        };
+                    }
+                    
+                    monthlyData[monthKey].sales += project.amount;
+                    const commission = window.CommissionApp.DataManager.calculateCommission(
+                        project.amount, 
+                        window.CommissionApp.DataManager.getData().commissionRules
+                    );
+                    monthlyData[monthKey].commission += commission;
+                });
+                
+                return Object.values(monthlyData).sort((a, b) => a.month.localeCompare(b.month));
+            },
+            
+            calculateCommissionComposition(projects) {
+                const composition = {};
+                
+                projects.forEach(project => {
+                    const commission = window.CommissionApp.DataManager.calculateCommission(
+                        project.amount, 
+                        window.CommissionApp.DataManager.getData().commissionRules
+                    );
+                    
+                    if (!composition[project.productType]) {
+                        composition[project.productType] = 0;
+                    }
+                    composition[project.productType] += commission;
+                });
+                
+                return Object.entries(composition).map(([name, value]) => ({
+                    name,
+                    value,
+                    itemStyle: {
+                        color: this.getProductColor(name)
+                    }
+                }));
+            },
+            
+            analyzeCustomers(projects) {
+                const customerMap = {};
+                
+                projects.forEach(project => {
+                    if (!customerMap[project.customer]) {
+                        customerMap[project.customer] = {
+                            name: project.customer,
+                            sales: 0,
+                            commission: 0,
+                            count: 0,
+                            amounts: []
+                        };
+                    }
+                    
+                    const commission = window.CommissionApp.DataManager.calculateCommission(
+                        project.amount, 
+                        window.CommissionApp.DataManager.getData().commissionRules
+                    );
+                    
+                    customerMap[project.customer].sales += project.amount;
+                    customerMap[project.customer].commission += commission;
+                    customerMap[project.customer].count += 1;
+                    customerMap[project.customer].amounts.push(project.amount);
+                });
+                
+                // 计算平均值并排序
+                return Object.values(customerMap)
+                    .map(customer => ({
+                        ...customer,
+                        avgAmount: customer.sales / customer.count
+                    }))
+                    .sort((a, b) => b.sales - a.sales)
+                    .slice(0, 4); // 取前4个客户
+            },
+            
+            analyzeProducts(projects) {
+                const productMap = {};
+                
+                projects.forEach(project => {
+                    if (!productMap[project.productType]) {
+                        productMap[project.productType] = {
+                            name: project.productType,
+                            sales: 0,
+                            count: 0
+                        };
+                    }
+                    
+                    productMap[project.productType].sales += project.amount;
+                    productMap[project.productType].count += 1;
+                });
+                
+                return Object.values(productMap).sort((a, b) => b.sales - a.sales);
+            },
+            
+            getProductColor(productType) {
+                const colors = {
+                    '软件服务': '#00d4ff',
+                    'SaaS产品': '#4ade80',
+                    '咨询服务': '#f59e0b',
+                    '开发服务': '#ef4444',
+                    '技术服务': '#8b5cf6'
+                };
+                return colors[productType] || '#64748b';
+            },
+            
+            updateDataTable(projects) {
+                const tbody = document.getElementById('data-table-body');
+                
+                const rows = projects.map(project => {
+                    const commission = window.CommissionApp.DataManager.calculateCommission(
+                        project.amount, 
+                        window.CommissionApp.DataManager.getData().commissionRules
+                    );
+                    
+                    return `
+                        <tr class="border-b border-gray-700 hover:bg-gray-800 hover:bg-opacity-30">
+                            <td class="py-3 px-4">${new Date(project.dealDate).toLocaleDateString()}</td>
+                            <td class="py-3 px-4 font-medium">${project.projectName}</td>
+                            <td class="py-3 px-4">${project.customer}</td>
+                            <td class="py-3 px-4 text-right font-mono">¥${project.amount.toLocaleString()}</td>
+                            <td class="py-3 px-4 text-right font-mono text-green-400">¥${commission.toLocaleString()}</td>
+                            <td class="py-3 px-4 text-center">
+                                <span class="px-2 py-1 text-xs rounded-full" style="background-color: ${this.getProductColor(project.productType)}20; color: ${this.getProductColor(project.productType)}">
+                                    ${project.productType}
+                                </span>
+                            </td>
+                            <td class="py-3 px-4 text-center">
+                                <span class="px-2 py-1 text-xs rounded-full ${this.getStatusBadgeClass(project.status)}">
+                                    ${project.status}
+                                </span>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+                
+                tbody.innerHTML = rows;
+            },
+            
+            getStatusBadgeClass(status) {
+                const classes = {
+                    '已完成': 'bg-green-500 bg-opacity-20 text-green-400',
+                    '进行中': 'bg-blue-500 bg-opacity-20 text-blue-400',
+                    '已暂停': 'bg-yellow-500 bg-opacity-20 text-yellow-400',
+                    '已取消': 'bg-red-500 bg-opacity-20 text-red-400'
+                };
+                return classes[status] || 'bg-gray-500 bg-opacity-20 text-gray-400';
+            },
+            
+            sortTableData(sortType) {
+                // 表格排序逻辑
+                console.log('排序方式:', sortType);
+            },
+            
+            initAnimations() {
+                anime.timeline({
+                    easing: 'easeOutExpo',
+                    duration: 800
+                })
+                .add({
+                    targets: '.floating-element',
+                    opacity: [0, 1],
+                    translateY: [30, 0],
+                    delay: anime.stagger(100)
+                });
+            }
+        };
+        
+        // 全局函数
+        function exportData() {
+            const data = window.CommissionApp.DataManager.getData();
+            const csvContent = "data:text/csv;charset=utf-8," + 
+                "项目日期,项目名称,客户名称,销售金额,提成收入,产品类型,状态\n" +
+                data.projects.map(project => {
+                    const commission = window.CommissionApp.DataManager.calculateCommission(
+                        project.amount, 
+                        data.commissionRules
+                    );
+                    return `${project.dealDate},${project.projectName},${project.customer},${project.amount},${commission},${project.productType},${project.status}`;
+                }).join("\n");
+            
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "销售数据报表.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            window.CommissionApp.UIController.showNotification('数据导出成功！', 'success');
+        }
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            AnalyticsManager.init();
+            window.CommissionApp.VisualEffects.initParticleBackground();
+            
+            // 响应式图表调整
+            window.addEventListener('resize', () => {
+                Object.values(AnalyticsManager.charts).forEach(chart => {
+                    chart.resize();
+                });
+            });
+        });
+    </script>
+</body>
+</html>

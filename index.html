@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>销售提成助手 - 个人工作台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        body {
+            background: #1a1a2e;
+            overflow-x: hidden;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+        }
+        .glow-border {
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+            border: 1px solid rgba(0, 212, 255, 0.5);
+        }
+        .hover-lift {
+            transition: all 0.3s ease;
+        }
+        .hover-lift:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 30px rgba(0, 212, 255, 0.2);
+        }
+        .gradient-text {
+            background: linear-gradient(135deg, #00d4ff, #4ade80);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .sidebar-item {
+            transition: all 0.3s ease;
+            border-radius: 8px;
+        }
+        .sidebar-item:hover {
+            background: rgba(0, 212, 255, 0.1);
+            transform: translateX(4px);
+        }
+        .sidebar-item.active {
+            background: rgba(0, 212, 255, 0.2);
+            border-left: 3px solid #00d4ff;
+        }
+        #p5-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: -1;
+        }
+        .metric-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 24px;
+            transition: all 0.4s ease;
+        }
+        .metric-card:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(0, 212, 255, 0.3);
+            transform: translateY(-2px);
+        }
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.35s;
+            transform-origin: 50% 50%;
+        }
+        .floating-element {
+            animation: float 6s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        .pulse-glow {
+            animation: pulse-glow 2s ease-in-out infinite alternate;
+        }
+        @keyframes pulse-glow {
+            from { box-shadow: 0 0 20px rgba(0, 212, 255, 0.3); }
+            to { box-shadow: 0 0 30px rgba(0, 212, 255, 0.6); }
+        }
+    </style>
+</head>
+<body class="text-white min-h-screen">
+    <!-- P5.js背景画布 -->
+    <div id="p5-container"></div>
+    
+    <!-- 主容器 -->
+    <div class="flex min-h-screen">
+        <!-- 左侧导航栏 -->
+        <div class="w-64 glass-card m-4 p-6 h-screen fixed left-0 top-0">
+            <div class="mb-8">
+                <h1 class="text-2xl font-bold gradient-text mb-2">销售提成助手</h1>
+                <p class="text-sm text-gray-400">个人版</p>
+            </div>
+            
+            <nav class="space-y-2">
+                <a href="index.html" class="sidebar-item active flex items-center p-3 text-white">
+                    <span class="mr-3">📊</span>
+                    <span>工作台</span>
+                </a>
+                <a href="projects.html" class="sidebar-item flex items-center p-3 text-gray-300 hover:text-white">
+                    <span class="mr-3">📝</span>
+                    <span>项目管理</span>
+                </a>
+                <a href="calculator.html" class="sidebar-item flex items-center p-3 text-gray-300 hover:text-white">
+                    <span class="mr-3">🧮</span>
+                    <span>提成计算</span>
+                </a>
+                <a href="analytics.html" class="sidebar-item flex items-center p-3 text-gray-300 hover:text-white">
+                    <span class="mr-3">📈</span>
+                    <span>数据分析</span>
+                </a>
+            </nav>
+            
+            <div class="mt-auto pt-8 border-t border-gray-600">
+                <div class="text-center">
+                    <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-green-400 rounded-full mx-auto mb-3"></div>
+                    <p class="text-sm text-gray-400">销售人员</p>
+                    <p class="text-xs text-gray-500">v1.0.0</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 主内容区 -->
+        <div class="flex-1 ml-72 p-8">
+            <!-- 页面标题 -->
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold mb-2">个人工作台</h2>
+                <p class="text-gray-400">实时监控销售业绩，精准管理提成收入</p>
+            </div>
+            
+            <!-- 年度目标进度 -->
+            <div class="glass-card p-8 mb-8 floating-element">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-xl font-semibold mb-2">2024年度销售目标</h3>
+                        <p class="text-gray-400 mb-4">目标销售额：¥2,000,000</p>
+                        <div class="flex items-center space-x-4">
+                            <span class="text-3xl font-bold gradient-text">¥1,250,000</span>
+                            <span class="text-green-400 text-sm">+15.3% 同比增长</span>
+                        </div>
+                        <div class="mt-4">
+                            <div class="flex justify-between text-sm text-gray-400 mb-2">
+                                <span>完成进度</span>
+                                <span>62.5%</span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-3">
+                                <div class="bg-gradient-to-r from-blue-500 to-green-400 h-3 rounded-full pulse-glow" style="width: 62.5%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="relative w-48 h-48">
+                        <svg class="progress-ring w-full h-full" viewBox="0 0 120 120">
+                            <circle cx="60" cy="60" r="50" stroke="rgba(255,255,255,0.1)" stroke-width="8" fill="transparent"/>
+                            <circle cx="60" cy="60" r="50" stroke="url(#gradient)" stroke-width="8" fill="transparent"
+                                    stroke-dasharray="314.16" stroke-dashoffset="117.81" class="progress-ring-circle"/>
+                            <defs>
+                                <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" style="stop-color:#00d4ff"/>
+                                    <stop offset="100%" style="stop-color:#4ade80"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <div class="text-center">
+                                <div class="text-2xl font-bold gradient-text">62.5%</div>
+                                <div class="text-xs text-gray-400">完成度</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 本月关键指标 -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="metric-card hover-lift">
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-gray-400 text-sm">本月成交金额</span>
+                        <span class="text-2xl">💰</span>
+                    </div>
+                    <div class="text-2xl font-bold font-mono gradient-text mb-2" id="monthly-amount">¥0</div>
+                    <div class="text-xs text-green-400">+8.7% 较上月</div>
+                </div>
+                
+                <div class="metric-card hover-lift">
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-gray-400 text-sm">本月提成收入</span>
+                        <span class="text-2xl">📈</span>
+                    </div>
+                    <div class="text-2xl font-bold font-mono gradient-text mb-2" id="monthly-commission">¥0</div>
+                    <div class="text-xs text-green-400">+12.4% 较上月</div>
+                </div>
+                
+                <div class="metric-card hover-lift">
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-gray-400 text-sm">本月项目数量</span>
+                        <span class="text-2xl">📋</span>
+                    </div>
+                    <div class="text-2xl font-bold font-mono gradient-text mb-2" id="monthly-projects">0</div>
+                    <div class="text-xs text-blue-400">3个进行中</div>
+                </div>
+            </div>
+            
+            <!-- 快速操作和最近项目 -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- 快速操作 -->
+                <div class="glass-card p-6">
+                    <h3 class="text-lg font-semibold mb-4">快速操作</h3>
+                    <div class="space-y-3">
+                        <button onclick="openAddProject()" class="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-medium py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105">
+                            ➕ 添加新项目
+                        </button>
+                        <button onclick="window.location.href='calculator.html'" class="w-full bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white font-medium py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105">
+                            🧮 计算提成
+                        </button>
+                        <button onclick="window.location.href='analytics.html'" class="w-full bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white font-medium py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105">
+                            📊 查看报表
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 最近项目 -->
+                <div class="glass-card p-6">
+                    <h3 class="text-lg font-semibold mb-4">最近项目</h3>
+                    <div class="space-y-3" id="recent-projects">
+                        <!-- 项目项将通过JavaScript动态加载 -->
+                    </div>
+                    <button onclick="window.location.href='projects.html'" class="w-full mt-4 text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors">
+                        查看全部项目 →
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 添加项目模态框 -->
+    <div id="add-project-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="glass-card p-8 max-w-md w-full mx-4 transform scale-95 opacity-0 transition-all duration-300" id="modal-content">
+            <h3 class="text-xl font-semibold mb-6">添加新项目</h3>
+            <form id="add-project-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2">项目名称</label>
+                    <input type="text" id="project-name" class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">客户名称</label>
+                    <input type="text" id="customer-name" class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">成交金额</label>
+                    <input type="number" id="project-amount" class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">成交日期</label>
+                    <input type="date" id="deal-date" class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none" required>
+                </div>
+                <div class="flex space-x-3 pt-4">
+                    <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+                        确认添加
+                    </button>
+                    <button type="button" onclick="closeAddProject()" class="flex-1 bg-gray-600 hover:bg-gray-500 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+                        取消
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script src="main.js"></script>
+</body>
+</html>

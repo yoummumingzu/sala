@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>销售提成助手 - 提成计算器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        body {
+            background: #1a1a2e;
+            overflow-x: hidden;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+        }
+        .glow-border {
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+            border: 1px solid rgba(0, 212, 255, 0.5);
+        }
+        .hover-lift {
+            transition: all 0.3s ease;
+        }
+        .hover-lift:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 30px rgba(0, 212, 255, 0.2);
+        }
+        .gradient-text {
+            background: linear-gradient(135deg, #00d4ff, #4ade80);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .sidebar-item {
+            transition: all 0.3s ease;
+            border-radius: 8px;
+        }
+        .sidebar-item:hover {
+            background: rgba(0, 212, 255, 0.1);
+            transform: translateX(4px);
+        }
+        .sidebar-item.active {
+            background: rgba(0, 212, 255, 0.2);
+            border-left: 3px solid #00d4ff;
+        }
+        #p5-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: -1;
+        }
+        .calculator-input {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 16px;
+            color: white;
+            font-size: 24px;
+            font-weight: 600;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        .calculator-input:focus {
+            outline: none;
+            border-color: rgba(0, 212, 255, 0.5);
+            box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+            background: rgba(255, 255, 255, 0.08);
+        }
+        .rule-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+        .rule-card:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(0, 212, 255, 0.3);
+        }
+        .mode-button {
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .mode-button:hover {
+            border-color: rgba(0, 212, 255, 0.3);
+            background: rgba(0, 212, 255, 0.1);
+        }
+        .mode-button.active {
+            border-color: #00d4ff;
+            background: rgba(0, 212, 255, 0.2);
+            color: #00d4ff;
+        }
+        .slider-container {
+            position: relative;
+            margin: 20px 0;
+        }
+        .slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #00d4ff;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        }
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #00d4ff;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        }
+        .floating-element {
+            animation: float 6s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        .pulse-glow {
+            animation: pulse-glow 2s ease-in-out infinite alternate;
+        }
+        @keyframes pulse-glow {
+            from { box-shadow: 0 0 20px rgba(0, 212, 255, 0.3); }
+            to { box-shadow: 0 0 30px rgba(0, 212, 255, 0.6); }
+        }
+        .calculation-step {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 12px;
+            margin: 8px 0;
+            opacity: 0;
+            transform: translateX(-20px);
+            transition: all 0.5s ease;
+        }
+        .calculation-step.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    </style>
+</head>
+<body class="text-white min-h-screen">
+    <!-- P5.js背景画布 -->
+    <div id="p5-container"></div>
+    
+    <!-- 主容器 -->
+    <div class="flex min-h-screen">
+        <!-- 左侧导航栏 -->
+        <div class="w-64 glass-card m-4 p-6 h-screen fixed left-0 top-0">
+            <div class="mb-8">
+                <h1 class="text-2xl font-bold gradient-text mb-2">销售提成助手</h1>
+                <p class="text-sm text-gray-400">个人版</p>
+            </div>
+            
+            <nav class="space-y-2">
+                <a href="index.html" class="sidebar-item flex items-center p-3 text-gray-300 hover:text-white">
+                    <span class="mr-3">📊</span>
+                    <span>工作台</span>
+                </a>
+                <a href="projects.html" class="sidebar-item flex items-center p-3 text-gray-300 hover:text-white">
+                    <span class="mr-3">📝</span>
+                    <span>项目管理</span>
+                </a>
+                <a href="calculator.html" class="sidebar-item active flex items-center p-3 text-white">
+                    <span class="mr-3">🧮</span>
+                    <span>提成计算</span>
+                </a>
+                <a href="analytics.html" class="sidebar-item flex items-center p-3 text-gray-300 hover:text-white">
+                    <span class="mr-3">📈</span>
+                    <span>数据分析</span>
+                </a>
+            </nav>
+            
+            <div class="mt-auto pt-8 border-t border-gray-600">
+                <div class="text-center">
+                    <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-green-400 rounded-full mx-auto mb-3"></div>
+                    <p class="text-sm text-gray-400">销售人员</p>
+                    <p class="text-xs text-gray-500">v1.0.0</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 主内容区 -->
+        <div class="flex-1 ml-72 p-8">
+            <!-- 页面标题 -->
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold mb-2">提成计算器</h2>
+                <p class="text-gray-400">智能计算销售提成，支持多种提成模式</p>
+            </div>
+            
+            <!-- 计算模式选择 -->
+            <div class="glass-card p-6 mb-8 floating-element">
+                <h3 class="text-lg font-semibold mb-4">选择提成模式</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <button class="mode-button active" data-mode="ladder">
+                        <div class="text-lg mb-2">📈</div>
+                        <div class="font-semibold">阶梯跳点</div>
+                        <div class="text-sm text-gray-400 mt-1">分段计算提成</div>
+                    </button>
+                    <button class="mode-button" data-mode="fixed">
+                        <div class="text-lg mb-2">📊</div>
+                        <div class="font-semibold">固定比例</div>
+                        <div class="text-sm text-gray-400 mt-1">统一提成比例</div>
+                    </button>
+                    <button class="mode-button" data-mode="excess">
+                        <div class="text-lg mb-2">🎯</div>
+                        <div class="font-semibold">超额奖励</div>
+                        <div class="text-sm text-gray-400 mt-1">目标+超额提成</div>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 计算器主体 -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <!-- 输入和计算 -->
+                <div class="glass-card p-6">
+                    <h3 class="text-lg font-semibold mb-6">计算提成</h3>
+                    
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium mb-3">输入销售金额</label>
+                        <input type="number" id="sales-amount" class="calculator-input w-full" 
+                               placeholder="0" value="500000" oninput="calculateCommission()">
+                    </div>
+                    
+                    <!-- 计算结果 -->
+                    <div class="bg-gradient-to-r from-blue-600 to-green-500 p-6 rounded-lg text-center pulse-glow">
+                        <div class="text-sm text-white text-opacity-90 mb-2">提成金额</div>
+                        <div class="text-4xl font-bold font-mono" id="commission-result">¥0</div>
+                        <div class="text-sm text-white text-opacity-90 mt-2" id="commission-rate">提成比例: 0%</div>
+                    </div>
+                    
+                    <!-- 快速测试金额 -->
+                    <div class="mt-6">
+                        <label class="block text-sm font-medium mb-3">快速测试</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button onclick="testAmount(100000)" class="bg-gray-700 hover:bg-gray-600 text-white py-2 px-3 rounded-lg text-sm transition-colors">
+                                ¥10万
+                            </button>
+                            <button onclick="testAmount(500000)" class="bg-gray-700 hover:bg-gray-600 text-white py-2 px-3 rounded-lg text-sm transition-colors">
+                                ¥50万
+                            </button>
+                            <button onclick="testAmount(1000000)" class="bg-gray-700 hover:bg-gray-600 text-white py-2 px-3 rounded-lg text-sm transition-colors">
+                                ¥100万
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 规则设置 -->
+                <div class="glass-card p-6">
+                    <h3 class="text-lg font-semibold mb-6">提成规则设置</h3>
+                    
+                    <!-- 阶梯跳点规则 -->
+                    <div id="ladder-rules" class="rule-section">
+                        <div class="space-y-4" id="ladder-rules-list">
+                            <!-- 规则项将通过JavaScript动态生成 -->
+                        </div>
+                        <button onclick="addLadderRule()" class="mt-4 w-full bg-blue-600 hover:bg-blue-500 text-white py-2 px-4 rounded-lg transition-colors">
+                            ➕ 添加阶梯
+                        </button>
+                    </div>
+                    
+                    <!-- 固定比例规则 -->
+                    <div id="fixed-rules" class="rule-section hidden">
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium mb-2">提成比例</label>
+                            <div class="slider-container">
+                                <input type="range" id="fixed-rate-slider" class="slider" 
+                                       min="0" max="20" value="6" step="0.1" oninput="updateFixedRate()">
+                                <div class="flex justify-between text-sm text-gray-400 mt-2">
+                                    <span>0%</span>
+                                    <span id="fixed-rate-value" class="font-semibold text-white">6.0%</span>
+                                    <span>20%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 超额奖励规则 -->
+                    <div id="excess-rules" class="rule-section hidden">
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-2">基础目标 (万元)</label>
+                                <input type="number" id="excess-target" class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white" 
+                                       value="100" oninput="calculateCommission()">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-2">基础提成比例</label>
+                                <div class="slider-container">
+                                    <input type="range" id="excess-base-rate" class="slider" 
+                                           min="0" max="10" value="5" step="0.1" oninput="updateExcessRates()">
+                                    <div class="flex justify-between text-sm text-gray-400 mt-2">
+                                        <span>0%</span>
+                                        <span id="excess-base-rate-value" class="font-semibold text-white">5.0%</span>
+                                        <span>10%</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-2">超额提成比例</label>
+                                <div class="slider-container">
+                                    <input type="range" id="excess-excess-rate" class="slider" 
+                                           min="5" max="25" value="12" step="0.1" oninput="updateExcessRates()">
+                                    <div class="flex justify-between text-sm text-gray-400 mt-2">
+                                        <span>5%</span>
+                                        <span id="excess-excess-rate-value" class="font-semibold text-white">12.0%</span>
+                                        <span>25%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 pt-6 border-t border-gray-600">
+                        <button onclick="saveRules()" class="w-full bg-green-600 hover:bg-green-500 text-white font-medium py-3 px-4 rounded-lg transition-colors">
+                            💾 保存规则设置
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 计算过程展示 -->
+            <div class="glass-card p-6 mb-8">
+                <h3 class="text-lg font-semibold mb-6">计算过程</h3>
+                <div id="calculation-steps" class="space-y-2">
+                    <!-- 计算步骤将通过JavaScript动态生成 -->
+                </div>
+            </div>
+            
+            <!-- 提成构成图表 -->
+            <div class="glass-card p-6">
+                <h3 class="text-lg font-semibold mb-6">提成构成分析</h3>
+                <div id="commission-chart" style="height: 300px;"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="main.js"></script>
+    <script>
+        // 提成计算器逻辑
+        const CommissionCalculator = {
+            currentMode: 'ladder',
+            ladderRules: [
+                {min: 0, max: 100000, rate: 0.05, id: 1},
+                {min: 100000, max: 500000, rate: 0.08, id: 2},
+                {min: 500000, max: Infinity, rate: 0.12, id: 3}
+            ],
+            fixedRate: 0.06,
+            excessRules: {
+                target: 1000000,
+                baseRate: 0.05,
+                excessRate: 0.12
+            },
+            chart: null,
+            
+            init() {
+                this.bindEvents();
+                this.loadRules();
+                this.calculateCommission();
+                this.initChart();
+                this.initAnimations();
+            },
+            
+            bindEvents() {
+                // 模式切换
+                document.querySelectorAll('.mode-button').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('.mode-button').forEach(b => b.classList.remove('active'));
+                        e.target.closest('.mode-button').classList.add('active');
+                        this.currentMode = e.target.closest('.mode-button').dataset.mode;
+                        this.switchMode();
+                    });
+                });
+                
+                // 输入变化
+                document.getElementById('sales-amount').addEventListener('input', () => {
+                    this.calculateCommission();
+                });
+            },
+            
+            loadRules() {
+                const data = window.CommissionApp.DataManager.getData();
+                if (data.commissionRules) {
+                    this.ladderRules = data.commissionRules.ladderRules || this.ladderRules;
+                    this.fixedRate = data.commissionRules.fixedRate || this.fixedRate;
+                    this.currentMode = data.commissionRules.calculationMode || 'ladder';
+                }
+                this.renderLadderRules();
+                this.updateFixedRateDisplay();
+                this.updateExcessRateDisplay();
+            },
+            
+            switchMode() {
+                // 隐藏所有规则区域
+                document.querySelectorAll('.rule-section').forEach(section => {
+                    section.classList.add('hidden');
+                });
+                
+                // 显示当前模式对应的规则区域
+                document.getElementById(this.currentMode + '-rules').classList.remove('hidden');
+                
+                this.calculateCommission();
+            },
+            
+            renderLadderRules() {
+                const container = document.getElementById('ladder-rules-list');
+                container.innerHTML = this.ladderRules.map((rule, index) => `
+                    <div class="rule-card p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="font-medium">阶梯 ${index + 1}</span>
+                            ${this.ladderRules.length > 1 ? `
+                                <button onclick="CommissionCalculator.removeLadderRule(${rule.id})" 
+                                        class="text-red-400 hover:text-red-300 text-sm">
+                                    删除
+                                </button>
+                            ` : ''}
+                        </div>
+                        <div class="grid grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1">最小值</label>
+                                <input type="number" value="${rule.min}" 
+                                       onchange="CommissionCalculator.updateLadderRule(${rule.id}, 'min', this.value)"
+                                       class="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 text-sm text-white">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1">最大值</label>
+                                <input type="number" value="${rule.max === Infinity ? '' : rule.max}" 
+                                       onchange="CommissionCalculator.updateLadderRule(${rule.id}, 'max', this.value)"
+                                       class="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 text-sm text-white"
+                                       placeholder="无限">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1">提成比例</label>
+                                <input type="number" value="${(rule.rate * 100).toFixed(1)}" step="0.1"
+                                       onchange="CommissionCalculator.updateLadderRule(${rule.id}, 'rate', this.value)"
+                                       class="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 text-sm text-white">
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            },
+            
+            addLadderRule() {
+                const newId = Math.max(...this.ladderRules.map(r => r.id)) + 1;
+                const lastRule = this.ladderRules[this.ladderRules.length - 1];
+                
+                this.ladderRules.push({
+                    id: newId,
+                    min: lastRule.max,
+                    max: lastRule.max * 2,
+                    rate: lastRule.rate + 0.02
+                });
+                
+                this.renderLadderRules();
+                this.calculateCommission();
+            },
+            
+            removeLadderRule(id) {
+                if (this.ladderRules.length > 1) {
+                    this.ladderRules = this.ladderRules.filter(rule => rule.id !== id);
+                    this.renderLadderRules();
+                    this.calculateCommission();
+                }
+            },
+            
+            updateLadderRule(id, field, value) {
+                const rule = this.ladderRules.find(r => r.id === id);
+                if (rule) {
+                    if (field === 'rate') {
+                        rule.rate = parseFloat(value) / 100;
+                    } else {
+                        rule[field] = field === 'max' && value === '' ? Infinity : parseFloat(value);
+                    }
+                    this.calculateCommission();
+                }
+            },
+            
+            updateFixedRate() {
+                const slider = document.getElementById('fixed-rate-slider');
+                this.fixedRate = parseFloat(slider.value) / 100;
+                document.getElementById('fixed-rate-value').textContent = slider.value + '%';
+                this.calculateCommission();
+            },
+            
+            updateFixedRateDisplay() {
+                const slider = document.getElementById('fixed-rate-slider');
+                slider.value = this.fixedRate * 100;
+                document.getElementById('fixed-rate-value').textContent = (this.fixedRate * 100).toFixed(1) + '%';
+            },
+            
+            updateExcessRates() {
+                const baseSlider = document.getElementById('excess-base-rate');
+                const excessSlider = document.getElementById('excess-excess-rate');
+                
+                this.excessRules.baseRate = parseFloat(baseSlider.value) / 100;
+                this.excessRules.excessRate = parseFloat(excessSlider.value) / 100;
+                
+                document.getElementById('excess-base-rate-value').textContent = baseSlider.value + '%';
+                document.getElementById('excess-excess-rate-value').textContent = excessSlider.value + '%';
+                
+                this.calculateCommission();
+            },
+            
+            updateExcessRateDisplay() {
+                const baseSlider = document.getElementById('excess-base-rate');
+                const excessSlider = document.getElementById('excess-excess-rate');
+                
+                baseSlider.value = this.excessRules.baseRate * 100;
+                excessSlider.value = this.excessRules.excessRate * 100;
+                
+                document.getElementById('excess-base-rate-value').textContent = (this.excessRules.baseRate * 100).toFixed(1) + '%';
+                document.getElementById('excess-excess-rate-value').textContent = (this.excessRules.excessRate * 100).toFixed(1) + '%';
+            },
+            
+            calculateCommission() {
+                const amount = parseFloat(document.getElementById('sales-amount').value) || 0;
+                let commission = 0;
+                let rate = 0;
+                let steps = [];
+                
+                switch (this.currentMode) {
+                    case 'ladder':
+                        const ladderResult = this.calculateLadderCommission(amount);
+                        commission = ladderResult.commission;
+                        rate = ladderResult.rate;
+                        steps = ladderResult.steps;
+                        break;
+                    case 'fixed':
+                        commission = amount * this.fixedRate;
+                        rate = this.fixedRate;
+                        steps = [{
+                            description: `固定比例计算`,
+                            calculation: `¥${amount.toLocaleString()} × ${(this.fixedRate * 100).toFixed(1)}%`,
+                            result: `¥${commission.toLocaleString()}`
+                        }];
+                        break;
+                    case 'excess':
+                        const excessResult = this.calculateExcessCommission(amount);
+                        commission = excessResult.commission;
+                        rate = excessResult.rate;
+                        steps = excessResult.steps;
+                        break;
+                }
+                
+                // 更新显示
+                document.getElementById('commission-result').textContent = `¥${commission.toLocaleString()}`;
+                document.getElementById('commission-rate').textContent = `提成比例: ${(rate * 100).toFixed(1)}%`;
+                
+                // 显示计算步骤
+                this.displayCalculationSteps(steps);
+                
+                // 更新图表
+                this.updateChart(amount, commission);
+            },
+            
+            calculateLadderCommission(amount) {
+                let commission = 0;
+                let remaining = amount;
+                const steps = [];
+                
+                for (const rule of this.ladderRules) {
+                    if (remaining <= 0) break;
+                    
+                    const bracketAmount = Math.min(remaining, rule.max - rule.min);
+                    if (bracketAmount > 0) {
+                        const bracketCommission = bracketAmount * rule.rate;
+                        commission += bracketCommission;
+                        remaining -= bracketAmount;
+                        
+                        steps.push({
+                            description: `阶梯 ${this.ladderRules.indexOf(rule) + 1}`,
+                            calculation: `¥${bracketAmount.toLocaleString()} × ${(rule.rate * 100).toFixed(1)}%`,
+                            result: `¥${bracketCommission.toLocaleString()}`
+                        });
+                    }
+                }
+                
+                const overallRate = amount > 0 ? commission / amount : 0;
+                
+                return {
+                    commission,
+                    rate: overallRate,
+                    steps
+                };
+            },
+            
+            calculateExcessCommission(amount) {
+                const target = parseFloat(document.getElementById('excess-target').value) * 10000;
+                let commission = 0;
+                const steps = [];
+                
+                if (amount <= target) {
+                    commission = amount * this.excessRules.baseRate;
+                    steps.push({
+                        description: `基础提成`,
+                        calculation: `¥${amount.toLocaleString()} × ${(this.excessRules.baseRate * 100).toFixed(1)}%`,
+                        result: `¥${commission.toLocaleString()}`
+                    });
+                } else {
+                    const baseCommission = target * this.excessRules.baseRate;
+                    const excessAmount = amount - target;
+                    const excessCommission = excessAmount * this.excessRules.excessRate;
+                    commission = baseCommission + excessCommission;
+                    
+                    steps.push({
+                        description: `基础部分`,
+                        calculation: `¥${target.toLocaleString()} × ${(this.excessRules.baseRate * 100).toFixed(1)}%`,
+                        result: `¥${baseCommission.toLocaleString()}`
+                    });
+                    
+                    steps.push({
+                        description: `超额部分`,
+                        calculation: `¥${excessAmount.toLocaleString()} × ${(this.excessRules.excessRate * 100).toFixed(1)}%`,
+                        result: `¥${excessCommission.toLocaleString()}`
+                    });
+                }
+                
+                const overallRate = amount > 0 ? commission / amount : 0;
+                
+                return {
+                    commission,
+                    rate: overallRate,
+                    steps
+                };
+            },
+            
+            displayCalculationSteps(steps) {
+                const container = document.getElementById('calculation-steps');
+                container.innerHTML = '';
+                
+                steps.forEach((step, index) => {
+                    const stepElement = document.createElement('div');
+                    stepElement.className = 'calculation-step';
+                    stepElement.innerHTML = `
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <div class="font-medium text-sm">${step.description}</div>
+                                <div class="text-xs text-gray-400 font-mono">${step.calculation}</div>
+                            </div>
+                            <div class="font-semibold font-mono text-green-400">${step.result}</div>
+                        </div>
+                    `;
+                    container.appendChild(stepElement);
+                    
+                    // 动画显示
+                    setTimeout(() => {
+                        stepElement.classList.add('show');
+                    }, index * 200);
+                });
+                
+                // 添加总计
+                setTimeout(() => {
+                    const totalElement = document.createElement('div');
+                    totalElement.className = 'calculation-step show';
+                    totalElement.innerHTML = `
+                        <div class="flex justify-between items-center">
+                            <div class="font-semibold">总计</div>
+                            <div class="font-bold font-mono text-xl text-green-400">
+                                ${document.getElementById('commission-result').textContent}
+                            </div>
+                        </div>
+                    `;
+                    container.appendChild(totalElement);
+                }, steps.length * 200);
+            },
+            
+            initChart() {
+                const chartDom = document.getElementById('commission-chart');
+                this.chart = echarts.init(chartDom);
+                this.updateChart(500000, 37000);
+            },
+            
+            updateChart(amount, commission) {
+                const option = {
+                    backgroundColor: 'transparent',
+                    tooltip: {
+                        trigger: 'item',
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        borderColor: '#00d4ff',
+                        textStyle: {
+                            color: '#fff'
+                        }
+                    },
+                    series: [
+                        {
+                            name: '提成构成',
+                            type: 'pie',
+                            radius: ['40%', '70%'],
+                            center: ['50%', '50%'],
+                            data: [
+                                {
+                                    value: amount - commission,
+                                    name: '销售成本',
+                                    itemStyle: {
+                                        color: '#64748b'
+                                    }
+                                },
+                                {
+                                    value: commission,
+                                    name: '提成收入',
+                                    itemStyle: {
+                                        color: new echarts.graphic.LinearGradient(0, 0, 1, 1, [
+                                            { offset: 0, color: '#00d4ff' },
+                                            { offset: 1, color: '#4ade80' }
+                                        ])
+                                    }
+                                }
+                            ],
+                            emphasis: {
+                                itemStyle: {
+                                    shadowBlur: 10,
+                                    shadowOffsetX: 0,
+                                    shadowColor: 'rgba(0, 212, 255, 0.5)'
+                                }
+                            },
+                            label: {
+                                color: '#fff',
+                                fontSize: 14
+                            },
+                            labelLine: {
+                                lineStyle: {
+                                    color: '#64748b'
+                                }
+                            }
+                        }
+                    ]
+                };
+                
+                this.chart.setOption(option);
+            },
+            
+            saveRules() {
+                const data = window.CommissionApp.DataManager.getData();
+                data.commissionRules = {
+                    ruleName: '自定义提成规则',
+                    calculationMode: this.currentMode,
+                    ladderRules: this.ladderRules,
+                    fixedRate: this.fixedRate,
+                    excessRules: this.excessRules
+                };
+                
+                window.CommissionApp.DataManager.saveData(data);
+                window.CommissionApp.UIController.showNotification('提成规则保存成功！', 'success');
+            },
+            
+            initAnimations() {
+                anime.timeline({
+                    easing: 'easeOutExpo',
+                    duration: 800
+                })
+                .add({
+                    targets: '.floating-element',
+                    opacity: [0, 1],
+                    translateY: [30, 0],
+                    delay: anime.stagger(100)
+                });
+            }
+        };
+        
+        // 全局函数
+        function testAmount(amount) {
+            document.getElementById('sales-amount').value = amount;
+            CommissionCalculator.calculateCommission();
+        }
+        
+        function addLadderRule() {
+            CommissionCalculator.addLadderRule();
+        }
+        
+        function updateFixedRate() {
+            CommissionCalculator.updateFixedRate();
+        }
+        
+        function updateExcessRates() {
+            CommissionCalculator.updateExcessRates();
+        }
+        
+        function calculateCommission() {
+            CommissionCalculator.calculateCommission();
+        }
+        
+        function saveRules() {
+            CommissionCalculator.saveRules();
+        }
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            CommissionCalculator.init();
+            window.CommissionApp.VisualEffects.initParticleBackground();
+        });
+    </script>
+</body>
+</html>

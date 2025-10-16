@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>销售提成助手 - 项目管理</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/js/splide.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        body {
+            background: #1a1a2e;
+            overflow-x: hidden;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+        }
+        .glow-border {
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+            border: 1px solid rgba(0, 212, 255, 0.5);
+        }
+        .hover-lift {
+            transition: all 0.3s ease;
+        }
+        .hover-lift:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 30px rgba(0, 212, 255, 0.2);
+        }
+        .gradient-text {
+            background: linear-gradient(135deg, #00d4ff, #4ade80);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .sidebar-item {
+            transition: all 0.3s ease;
+            border-radius: 8px;
+        }
+        .sidebar-item:hover {
+            background: rgba(0, 212, 255, 0.1);
+            transform: translateX(4px);
+        }
+        .sidebar-item.active {
+            background: rgba(0, 212, 255, 0.2);
+            border-left: 3px solid #00d4ff;
+        }
+        #p5-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: -1;
+        }
+        .project-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            transition: all 0.4s ease;
+            cursor: pointer;
+        }
+        .project-card:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(0, 212, 255, 0.3);
+            transform: translateY(-4px);
+        }
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .search-input {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 12px 16px;
+            color: white;
+            transition: all 0.3s ease;
+        }
+        .search-input:focus {
+            outline: none;
+            border-color: rgba(0, 212, 255, 0.5);
+            box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+        }
+        .filter-button {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .filter-button:hover {
+            background: rgba(0, 212, 255, 0.1);
+            border-color: rgba(0, 212, 255, 0.3);
+        }
+        .filter-button.active {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: rgba(0, 212, 255, 0.5);
+            color: #00d4ff;
+        }
+        .floating-element {
+            animation: float 6s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+    </style>
+</head>
+<body class="text-white min-h-screen">
+    <!-- P5.js背景画布 -->
+    <div id="p5-container"></div>
+    
+    <!-- 主容器 -->
+    <div class="flex min-h-screen">
+        <!-- 左侧导航栏 -->
+        <div class="w-64 glass-card m-4 p-6 h-screen fixed left-0 top-0">
+            <div class="mb-8">
+                <h1 class="text-2xl font-bold gradient-text mb-2">销售提成助手</h1>
+                <p class="text-sm text-gray-400">个人版</p>
+            </div>
+            
+            <nav class="space-y-2">
+                <a href="index.html" class="sidebar-item flex items-center p-3 text-gray-300 hover:text-white">
+                    <span class="mr-3">📊</span>
+                    <span>工作台</span>
+                </a>
+                <a href="projects.html" class="sidebar-item active flex items-center p-3 text-white">
+                    <span class="mr-3">📝</span>
+                    <span>项目管理</span>
+                </a>
+                <a href="calculator.html" class="sidebar-item flex items-center p-3 text-gray-300 hover:text-white">
+                    <span class="mr-3">🧮</span>
+                    <span>提成计算</span>
+                </a>
+                <a href="analytics.html" class="sidebar-item flex items-center p-3 text-gray-300 hover:text-white">
+                    <span class="mr-3">📈</span>
+                    <span>数据分析</span>
+                </a>
+            </nav>
+            
+            <div class="mt-auto pt-8 border-t border-gray-600">
+                <div class="text-center">
+                    <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-green-400 rounded-full mx-auto mb-3"></div>
+                    <p class="text-sm text-gray-400">销售人员</p>
+                    <p class="text-xs text-gray-500">v1.0.0</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 主内容区 -->
+        <div class="flex-1 ml-72 p-8">
+            <!-- 页面标题和操作栏 -->
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h2 class="text-3xl font-bold mb-2">项目管理</h2>
+                    <p class="text-gray-400">管理所有销售项目，跟踪进度和收入</p>
+                </div>
+                <button onclick="openAddProject()" class="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-medium py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105">
+                    ➕ 添加项目
+                </button>
+            </div>
+            
+            <!-- 统计卡片 -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <div class="glass-card p-6 text-center floating-element">
+                    <div class="text-2xl mb-2">📊</div>
+                    <div class="text-2xl font-bold gradient-text" id="total-projects">0</div>
+                    <div class="text-sm text-gray-400">总项目数</div>
+                </div>
+                <div class="glass-card p-6 text-center floating-element">
+                    <div class="text-2xl mb-2">💰</div>
+                    <div class="text-2xl font-bold gradient-text" id="total-amount">¥0</div>
+                    <div class="text-sm text-gray-400">总成交金额</div>
+                </div>
+                <div class="glass-card p-6 text-center floating-element">
+                    <div class="text-2xl mb-2">🎯</div>
+                    <div class="text-2xl font-bold gradient-text" id="total-commission">¥0</div>
+                    <div class="text-sm text-gray-400">总提成收入</div>
+                </div>
+                <div class="glass-card p-6 text-center floating-element">
+                    <div class="text-2xl mb-2">🔄</div>
+                    <div class="text-2xl font-bold gradient-text" id="active-projects">0</div>
+                    <div class="text-sm text-gray-400">进行中项目</div>
+                </div>
+            </div>
+            
+            <!-- 搜索和筛选 -->
+            <div class="glass-card p-6 mb-8">
+                <div class="flex flex-col lg:flex-row gap-4 items-center">
+                    <div class="flex-1">
+                        <input type="text" id="search-input" placeholder="搜索项目名称、客户名称..." 
+                               class="search-input w-full">
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="filter-button active" data-filter="all">全部</button>
+                        <button class="filter-button" data-filter="进行中">进行中</button>
+                        <button class="filter-button" data-filter="已完成">已完成</button>
+                        <button class="filter-button" data-filter="已暂停">已暂停</button>
+                    </div>
+                    <div class="flex gap-2">
+                        <select id="sort-select" class="filter-button">
+                            <option value="date-desc">最新优先</option>
+                            <option value="date-asc">最早优先</option>
+                            <option value="amount-desc">金额最高</option>
+                            <option value="amount-asc">金额最低</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 项目网格 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="projects-grid">
+                <!-- 项目卡片将通过JavaScript动态加载 -->
+            </div>
+            
+            <!-- 空状态 -->
+            <div id="empty-state" class="hidden text-center py-16">
+                <div class="text-6xl mb-4">📭</div>
+                <h3 class="text-xl font-semibold mb-2">暂无项目</h3>
+                <p class="text-gray-400 mb-6">开始添加您的第一个销售项目</p>
+                <button onclick="openAddProject()" class="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-medium py-3 px-6 rounded-lg transition-all duration-300">
+                    添加项目
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 添加/编辑项目模态框 -->
+    <div id="project-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="glass-card p-8 max-w-2xl w-full mx-4 max-h-screen overflow-y-auto transform scale-95 opacity-0 transition-all duration-300" id="modal-content">
+            <h3 class="text-xl font-semibold mb-6" id="modal-title">添加新项目</h3>
+            <form id="project-form" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">项目名称 *</label>
+                        <input type="text" id="project-name" class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">客户名称 *</label>
+                        <input type="text" id="customer-name" class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none" required>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">成交金额 *</label>
+                        <input type="number" id="project-amount" class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">成交日期 *</label>
+                        <input type="date" id="deal-date" class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none" required>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">产品类型</label>
+                        <select id="product-type" class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none">
+                            <option value="软件服务">软件服务</option>
+                            <option value="SaaS产品">SaaS产品</option>
+                            <option value="咨询服务">咨询服务</option>
+                            <option value="开发服务">开发服务</option>
+                            <option value="技术服务">技术服务</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">项目状态</label>
+                        <select id="project-status" class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none">
+                            <option value="进行中">进行中</option>
+                            <option value="已完成">已完成</option>
+                            <option value="已暂停">已暂停</option>
+                            <option value="已取消">已取消</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-2">备注信息</label>
+                    <textarea id="project-notes" rows="3" class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none" placeholder="项目相关备注信息..."></textarea>
+                </div>
+                
+                <div class="flex space-x-3 pt-6">
+                    <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-medium py-3 px-4 rounded-lg transition-colors">
+                        确认保存
+                    </button>
+                    <button type="button" onclick="closeProjectModal()" class="flex-1 bg-gray-600 hover:bg-gray-500 text-white font-medium py-3 px-4 rounded-lg transition-colors">
+                        取消
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- 项目详情模态框 -->
+    <div id="project-detail-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="glass-card p-8 max-w-2xl w-full mx-4 max-h-screen overflow-y-auto transform scale-95 opacity-0 transition-all duration-300" id="detail-modal-content">
+            <div class="flex justify-between items-start mb-6">
+                <h3 class="text-xl font-semibold" id="detail-project-name">项目详情</h3>
+                <button onclick="closeProjectDetailModal()" class="text-gray-400 hover:text-white text-2xl">&times;</button>
+            </div>
+            
+            <div id="project-detail-content">
+                <!-- 详情内容将通过JavaScript动态加载 -->
+            </div>
+            
+            <div class="flex space-x-3 pt-6">
+                <button onclick="editProject()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+                    编辑项目
+                </button>
+                <button onclick="deleteProject()" class="flex-1 bg-red-600 hover:bg-red-500 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+                    删除项目
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="main.js"></script>
+    <script>
+        // 项目管理页面特定逻辑
+        const ProjectManager = {
+            currentFilter: 'all',
+            currentSort: 'date-desc',
+            searchQuery: '',
+            editingProjectId: null,
+            viewingProjectId: null,
+            
+            init() {
+                this.bindEvents();
+                this.loadProjects();
+                this.updateStatistics();
+                this.initAnimations();
+            },
+            
+            bindEvents() {
+                // 搜索输入
+                document.getElementById('search-input').addEventListener('input', (e) => {
+                    this.searchQuery = e.target.value.toLowerCase();
+                    this.filterAndRenderProjects();
+                });
+                
+                // 筛选按钮
+                document.querySelectorAll('.filter-button[data-filter]').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('.filter-button[data-filter]').forEach(b => b.classList.remove('active'));
+                        e.target.classList.add('active');
+                        this.currentFilter = e.target.dataset.filter;
+                        this.filterAndRenderProjects();
+                    });
+                });
+                
+                // 排序选择
+                document.getElementById('sort-select').addEventListener('change', (e) => {
+                    this.currentSort = e.target.value;
+                    this.filterAndRenderProjects();
+                });
+                
+                // 表单提交
+                document.getElementById('project-form').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.handleSaveProject();
+                });
+            },
+            
+            loadProjects() {
+                const data = window.CommissionApp.DataManager.getData();
+                this.allProjects = data.projects;
+                this.filterAndRenderProjects();
+            },
+            
+            filterAndRenderProjects() {
+                let filteredProjects = [...this.allProjects];
+                
+                // 应用搜索过滤
+                if (this.searchQuery) {
+                    filteredProjects = filteredProjects.filter(project => 
+                        project.projectName.toLowerCase().includes(this.searchQuery) ||
+                        project.customer.toLowerCase().includes(this.searchQuery)
+                    );
+                }
+                
+                // 应用状态过滤
+                if (this.currentFilter !== 'all') {
+                    filteredProjects = filteredProjects.filter(project => 
+                        project.status === this.currentFilter
+                    );
+                }
+                
+                // 应用排序
+                filteredProjects.sort((a, b) => {
+                    switch (this.currentSort) {
+                        case 'date-desc':
+                            return new Date(b.dealDate) - new Date(a.dealDate);
+                        case 'date-asc':
+                            return new Date(a.dealDate) - new Date(b.dealDate);
+                        case 'amount-desc':
+                            return b.amount - a.amount;
+                        case 'amount-asc':
+                            return a.amount - b.amount;
+                        default:
+                            return 0;
+                    }
+                });
+                
+                this.renderProjects(filteredProjects);
+            },
+            
+            renderProjects(projects) {
+                const grid = document.getElementById('projects-grid');
+                const emptyState = document.getElementById('empty-state');
+                
+                if (projects.length === 0) {
+                    grid.classList.add('hidden');
+                    emptyState.classList.remove('hidden');
+                    return;
+                }
+                
+                grid.classList.remove('hidden');
+                emptyState.classList.add('hidden');
+                
+                grid.innerHTML = projects.map(project => `
+                    <div class="project-card p-6 hover-lift" onclick="viewProject('${project.id}')">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="flex-1">
+                                <h3 class="font-semibold text-lg mb-1 truncate">${project.projectName}</h3>
+                                <p class="text-gray-400 text-sm">${project.customer}</p>
+                            </div>
+                            <span class="status-badge ${this.getStatusBadgeClass(project.status)}">
+                                ${project.status}
+                            </span>
+                        </div>
+                        
+                        <div class="space-y-2 mb-4">
+                            <div class="flex justify-between">
+                                <span class="text-gray-400 text-sm">成交金额</span>
+                                <span class="font-mono font-semibold">¥${project.amount.toLocaleString()}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-400 text-sm">提成收入</span>
+                                <span class="font-mono font-semibold text-green-400">
+                                    ¥${this.calculateProjectCommission(project).toLocaleString()}
+                                </span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-400 text-sm">成交日期</span>
+                                <span class="text-sm">${new Date(project.dealDate).toLocaleDateString()}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs text-gray-500">${project.productType}</span>
+                            <div class="flex space-x-2">
+                                <button onclick="event.stopPropagation(); editProject('${project.id}')" 
+                                        class="text-blue-400 hover:text-blue-300 text-sm">
+                                    编辑
+                                </button>
+                                <button onclick="event.stopPropagation(); deleteProject('${project.id}')" 
+                                        class="text-red-400 hover:text-red-300 text-sm">
+                                    删除
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+                
+                // 添加动画
+                anime({
+                    targets: '.project-card',
+                    opacity: [0, 1],
+                    translateY: [20, 0],
+                    delay: anime.stagger(50),
+                    duration: 600,
+                    easing: 'easeOutCubic'
+                });
+            },
+            
+            calculateProjectCommission(project) {
+                const data = window.CommissionApp.DataManager.getData();
+                return window.CommissionApp.DataManager.calculateCommission(project.amount, data.commissionRules);
+            },
+            
+            getStatusBadgeClass(status) {
+                const classes = {
+                    '已完成': 'bg-green-500 bg-opacity-20 text-green-400',
+                    '进行中': 'bg-blue-500 bg-opacity-20 text-blue-400',
+                    '已暂停': 'bg-yellow-500 bg-opacity-20 text-yellow-400',
+                    '已取消': 'bg-red-500 bg-opacity-20 text-red-400'
+                };
+                return classes[status] || 'bg-gray-500 bg-opacity-20 text-gray-400';
+            },
+            
+            updateStatistics() {
+                const data = window.CommissionApp.DataManager.getData();
+                const projects = data.projects;
+                
+                const totalAmount = projects.reduce((sum, p) => sum + p.amount, 0);
+                const totalCommission = projects.reduce((sum, p) => sum + this.calculateProjectCommission(p), 0);
+                const activeProjects = projects.filter(p => p.status === '进行中').length;
+                
+                // 动画更新统计数字
+                this.animateNumber('total-projects', projects.length);
+                this.animateNumber('total-amount', totalAmount, '¥');
+                this.animateNumber('total-commission', totalCommission, '¥');
+                this.animateNumber('active-projects', activeProjects);
+            },
+            
+            animateNumber(elementId, end, prefix = '') {
+                const element = document.getElementById(elementId);
+                if (!element) return;
+                
+                const obj = { value: 0 };
+                anime({
+                    targets: obj,
+                    value: end,
+                    duration: 2000,
+                    easing: 'easeOutCubic',
+                    update: function() {
+                        const value = prefix === '¥' ? 
+                            prefix + Math.floor(obj.value).toLocaleString() : 
+                            Math.floor(obj.value);
+                        element.textContent = value;
+                    }
+                });
+            },
+            
+            initAnimations() {
+                anime.timeline({
+                    easing: 'easeOutExpo',
+                    duration: 800
+                })
+                .add({
+                    targets: '.floating-element',
+                    opacity: [0, 1],
+                    translateY: [30, 0],
+                    delay: anime.stagger(100)
+                });
+            },
+            
+            handleSaveProject() {
+                const formData = {
+                    projectName: document.getElementById('project-name').value,
+                    customer: document.getElementById('customer-name').value,
+                    amount: parseFloat(document.getElementById('project-amount').value),
+                    dealDate: document.getElementById('deal-date').value,
+                    productType: document.getElementById('product-type').value,
+                    status: document.getElementById('project-status').value,
+                    notes: document.getElementById('project-notes').value,
+                    commissionRate: 0.06
+                };
+                
+                const data = window.CommissionApp.DataManager.getData();
+                
+                if (this.editingProjectId) {
+                    // 编辑现有项目
+                    const index = data.projects.findIndex(p => p.id === this.editingProjectId);
+                    if (index !== -1) {
+                        data.projects[index] = { ...data.projects[index], ...formData };
+                    }
+                } else {
+                    // 添加新项目
+                    const newProject = {
+                        id: 'proj_' + Date.now(),
+                        ...formData,
+                        createdAt: new Date().toISOString()
+                    };
+                    data.projects.unshift(newProject);
+                }
+                
+                window.CommissionApp.DataManager.saveData(data);
+                this.allProjects = data.projects;
+                this.filterAndRenderProjects();
+                this.updateStatistics();
+                this.closeProjectModal();
+                
+                const message = this.editingProjectId ? '项目更新成功！' : '项目添加成功！';
+                window.CommissionApp.UIController.showNotification(message, 'success');
+            }
+        };
+        
+        // 全局函数
+        function openAddProject() {
+            ProjectManager.editingProjectId = null;
+            document.getElementById('modal-title').textContent = '添加新项目';
+            document.getElementById('project-form').reset();
+            
+            const modal = document.getElementById('project-modal');
+            const content = document.getElementById('modal-content');
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            
+            anime({
+                targets: content,
+                scale: [0.95, 1],
+                opacity: [0, 1],
+                duration: 300,
+                easing: 'easeOutCubic'
+            });
+        }
+        
+        function editProject(projectId) {
+            if (typeof projectId === 'string') {
+                ProjectManager.editingProjectId = projectId;
+                const data = window.CommissionApp.DataManager.getData();
+                const project = data.projects.find(p => p.id === projectId);
+                
+                if (project) {
+                    document.getElementById('modal-title').textContent = '编辑项目';
+                    document.getElementById('project-name').value = project.projectName;
+                    document.getElementById('customer-name').value = project.customer;
+                    document.getElementById('project-amount').value = project.amount;
+                    document.getElementById('deal-date').value = project.dealDate;
+                    document.getElementById('product-type').value = project.productType;
+                    document.getElementById('project-status').value = project.status;
+                    document.getElementById('project-notes').value = project.notes || '';
+                    
+                    closeProjectDetailModal();
+                    
+                    const modal = document.getElementById('project-modal');
+                    const content = document.getElementById('modal-content');
+                    
+                    modal.classList.remove('hidden');
+                    modal.classList.add('flex');
+                    
+                    anime({
+                        targets: content,
+                        scale: [0.95, 1],
+                        opacity: [0, 1],
+                        duration: 300,
+                        easing: 'easeOutCubic'
+                    });
+                }
+            }
+        }
+        
+        function viewProject(projectId) {
+            ProjectManager.viewingProjectId = projectId;
+            const data = window.CommissionApp.DataManager.getData();
+            const project = data.projects.find(p => p.id === projectId);
+            
+            if (project) {
+                const commission = ProjectManager.calculateProjectCommission(project);
+                
+                document.getElementById('detail-project-name').textContent = project.projectName;
+                document.getElementById('project-detail-content').innerHTML = `
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="bg-gray-800 bg-opacity-30 p-4 rounded-lg">
+                                <label class="block text-sm text-gray-400 mb-1">客户名称</label>
+                                <div class="font-medium">${project.customer}</div>
+                            </div>
+                            <div class="bg-gray-800 bg-opacity-30 p-4 rounded-lg">
+                                <label class="block text-sm text-gray-400 mb-1">成交金额</label>
+                                <div class="font-mono font-semibold text-lg">¥${project.amount.toLocaleString()}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="bg-gray-800 bg-opacity-30 p-4 rounded-lg">
+                                <label class="block text-sm text-gray-400 mb-1">成交日期</label>
+                                <div class="font-medium">${new Date(project.dealDate).toLocaleDateString()}</div>
+                            </div>
+                            <div class="bg-gray-800 bg-opacity-30 p-4 rounded-lg">
+                                <label class="block text-sm text-gray-400 mb-1">项目状态</label>
+                                <span class="status-badge ${ProjectManager.getStatusBadgeClass(project.status)}">
+                                    ${project.status}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="bg-gray-800 bg-opacity-30 p-4 rounded-lg">
+                                <label class="block text-sm text-gray-400 mb-1">产品类型</label>
+                                <div class="font-medium">${project.productType}</div>
+                            </div>
+                            <div class="bg-gray-800 bg-opacity-30 p-4 rounded-lg">
+                                <label class="block text-sm text-gray-400 mb-1">提成收入</label>
+                                <div class="font-mono font-semibold text-lg text-green-400">¥${commission.toLocaleString()}</div>
+                            </div>
+                        </div>
+                        
+                        ${project.notes ? `
+                        <div class="bg-gray-800 bg-opacity-30 p-4 rounded-lg">
+                            <label class="block text-sm text-gray-400 mb-1">备注信息</label>
+                            <div class="text-sm">${project.notes}</div>
+                        </div>
+                        ` : ''}
+                    </div>
+                `;
+                
+                const modal = document.getElementById('project-detail-modal');
+                const content = document.getElementById('detail-modal-content');
+                
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                
+                anime({
+                    targets: content,
+                    scale: [0.95, 1],
+                    opacity: [0, 1],
+                    duration: 300,
+                    easing: 'easeOutCubic'
+                });
+            }
+        }
+        
+        function deleteProject(projectId) {
+            if (confirm('确定要删除这个项目吗？此操作无法撤销。')) {
+                const data = window.CommissionApp.DataManager.getData();
+                data.projects = data.projects.filter(p => p.id !== projectId);
+                window.CommissionApp.DataManager.saveData(data);
+                
+                ProjectManager.allProjects = data.projects;
+                ProjectManager.filterAndRenderProjects();
+                ProjectManager.updateStatistics();
+                
+                closeProjectDetailModal();
+                window.CommissionApp.UIController.showNotification('项目删除成功！', 'success');
+            }
+        }
+        
+        function closeProjectModal() {
+            const modal = document.getElementById('project-modal');
+            const content = document.getElementById('modal-content');
+            
+            anime({
+                targets: content,
+                scale: 0.95,
+                opacity: 0,
+                duration: 200,
+                easing: 'easeOutCubic',
+                complete: () => {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                }
+            });
+        }
+        
+        function closeProjectDetailModal() {
+            const modal = document.getElementById('project-detail-modal');
+            const content = document.getElementById('detail-modal-content');
+            
+            anime({
+                targets: content,
+                scale: 0.95,
+                opacity: 0,
+                duration: 200,
+                easing: 'easeOutCubic',
+                complete: () => {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                }
+            });
+        }
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            ProjectManager.init();
+            window.CommissionApp.VisualEffects.initParticleBackground();
+        });
+    </script>
+</body>
+</html>
